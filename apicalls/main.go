@@ -12,132 +12,98 @@ type Person struct {
 	Age   int    `json:"age"`
 }
 
+func checkerror(err error) {
+	if err != nil {
+		println(err.Error())
+		os.Exit(1)
+	}
+}
+
 func checkForFile(fileName string) ([]byte, error) {
 	_, err := os.Stat(fileName)
-	checkerror(err)
-	//	println(status)
-
-	//	check if the file exist and !exist create one
 	if os.IsNotExist(err) {
-		_, err := os.Create(fileName)
-		checkerror(err)
+		file, err := os.Create(fileName)
+		if err != nil {
+			return nil, err
+		}
+		file.Close()
+	} else if err != nil {
+		return nil, err
 	}
-	file, err := ioutil.ReadFile("result.json")
-	checkerror(err)
+
+	file, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return nil, err
+	}
 
 	return file, nil
 }
 
-func checkerror(err error) {
-	if err != nil {
-		println(err.Error())
-	}
-}
-
-func appendToJSONFile(data []Person, filename string) error {
+func appendToJSONFile(filename string) error {
 	var jsondata []Person
 
-	// Check for file and if !exist create
 	file, err := checkForFile(filename)
+	if err != nil {
+		return err
+	}
 
-	// Unmarshal the existing JSON data
+	// Handle empty file
+	if len(file) == 0 {
+		data := []Person{
+			{
+				Fname: "Prasad",
+				Lname: "Junghare",
+				Age:   21,
+			},
+		}
+		databyte, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
+
+		err = ioutil.WriteFile(filename, databyte, 0644)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	err = json.Unmarshal(file, &jsondata)
-	checkerror(err)
+	if err != nil {
+		return err
+	}
 
-	//	data := []Person{}
-
-	newStruct := &Person{
+	data := append(jsondata, Person{
 		Fname: "Prasad",
 		Lname: "Junghare",
 		Age:   21,
-	}
-
-	//	append the new data
-	//	jsondata = append(jsondata, data...)
-	data = append(data, *newStruct)
-
-	//	Marshal the updated JSON data
-	//	data, err := append(jsondata)
-	//	checkerror(err)
-
-	/*
-		//	Preparing the data to be marshalled and written
-		dataBytes, err := json.Marshal(data)
-		checkerror(err)
-
-		err = ioutil.WriteFile("result.json", dataBytes, 0644)
-		checkerror(err)
-	*/
+	})
 
 	databyte, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
 
-	//	write the updated data to the file
 	err = ioutil.WriteFile(filename, databyte, 0644)
-	checkerror(err)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func main() {
-	//	println("api call")
+	if len(os.Args) < 2 {
+		println("Usage: go run main.go <filename>")
+		os.Exit(1)
+	}
 
-	//	append using the apppend function
-	appendToJSONFile(data, "result.json")
-	
-	// some file stuff going on
-	/*
-		//	 Check if the file exist
-		// if !exist create new file
-		err := checkForFile("result.json")
-		checkerror(err)
+	filename := os.Args[1]
 
-		file, err := ioutil.ReadFile("result.json")
-		checkerror(err)
-
-		data := []Person{}
-
-		json.Unmarshal(file, &data)
-
-		newStruct := &Person{
-			Fname: "Prasad",
-			Lname: "Junghare",
-			Age:   21,
-		}
-
-		data = append(data, *newStruct)
-
-		//	Preparing the data to be marshalled and written
-		dataBytes, err := json.Marshal(data)
-		checkerror(err)
-
-		err = ioutil.WriteFile("result.json", dataBytes, 0644)
-		checkerror(err)
-
-	*/
-
-	/*
-	   //	rapid api link
-	   url := "https://carbonfootprint1.p.rapidapi.com/AirQualityHealthIndex?O3=10&NO2=10&PM=10"
-
-	   //	Make a new request
-	   req, err := http.NewRequest("GET", url, nil)
-	   checkerror(err)
-
-	   //Adding key
-	   req.Header.Add("X-RapidAPI-Key", "4d2c003e3emsh82512a559ce6b89p16ac42jsnc0e7dc1d61ac")
-
-	   // sending the request to receive the respone
-	   res, err := http.DefaultClient.Do(req)
-	   checkerror(err)
-
-	   // closing the repsone body
-	   defer res.Body.Close()
-
-	   //Accessing the response body
-	   body, err := ioutil.ReadAll(res.Body)
-	   checkerror(err)
-
-	   //	print the response
-	   println(string(body))
-	*/
+	err := appendToJSONFile(filename)
+	if err != nil {
+		println("Error:", err.Error())
+		os.Exit(1)
+	}
 }
