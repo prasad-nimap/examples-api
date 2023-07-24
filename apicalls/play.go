@@ -166,27 +166,28 @@ func main() {
 
 	//	search endpoints
 	searchendpoint := os.Args[1]
-	weight := os.Args[2]
-	unit := os.Args[3]
-	file := os.Args[4]
-	
+	// weight := os.Args[2]
+	// unit := os.Args[3]
+	file := os.Args[2]
+
 	//	rapid api link
 	url := "https://carbonfootprint1.p.rapidapi.com/"
-	
+
 	//	queryString := "TreeEquivalent" + "?weight=200&unit=kg"
-	queryString := searchendpoint + "?weight=" + weight + "&unit=" + unit
-	
+	queryString := searchendpoint + "?weight=200&unit=kg"
+	// queryString := searchendpoint + "?weight=" + weight + "&unit=" + unit
+
 	//	Make a new request
 	req, err := http.NewRequest("GET", url+queryString, nil)
 	checkerrorplay(err)
-	
+
 	//Adding key
 	req.Header.Add("X-RapidAPI-Key", "4d2c003e3emsh82512a559ce6b89p16ac42jsnc0e7dc1d61ac")
-	
+
 	// sending the request to receive the respone
 	res, err := http.DefaultClient.Do(req)
 	checkerrorplay(err)
-	
+
 	var apiResponse APIResponseplay
 	err = json.NewDecoder(res.Body).Decode(&apiResponse)
 	checkerrorplay(err)
