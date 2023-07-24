@@ -3,107 +3,89 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
 	"os"
 )
 
-type Person struct {
-	Fname string `json:"fname"`
-	Lname string `json:"lname"`
-	Age   int    `json:"age"`
+
+
+type APIResponse struct {
+	AirQualityIndex float32 `json:"airQualityIndex"`
+}
+
+func checkForFile(fileName string) ([]byte, error) {
+	_, err := os.Stat(fileName)
+	checkerror(err)
+
+	// check if the file exist and !exist create one
+	if os.IsNotExist(err) {
+		_, err := os.Create(fileName)
+		checkerror(err)
+	}
+	file, err := ioutil.ReadFile("result.json")
+	checkerror(err)
+
+	return file, nil
 }
 
 func checkerror(err error) {
 	if err != nil {
 		println(err.Error())
-		os.Exit(1)
 	}
 }
 
-func checkForFile(fileName string) ([]byte, error) {
-	_, err := os.Stat(fileName)
-	if os.IsNotExist(err) {
-		file, err := os.Create(fileName)
-		if err != nil {
-			return nil, err
-		}
-		file.Close()
-	} else if err != nil {
-		return nil, err
-	}
+func appendToJSONFile() {
+	filepath := checkForFile()
+	existingData := make(map[string]interface{})
 
-	file, err := ioutil.ReadFile(fileName)
-	if err != nil {
-		return nil, err
-	}
+	var apiResponse APIResponse
+	err := json.NewDecoder(res.Body).Decode(&apiResponse)
+	checkerror(err)
 
-	return file, nil
+	existingData["apiresponse"] = apiResponse
+
+	//	Marshal the updated data back to json format
+	updatedJSONData, err := json.Marshal(existingData)
+	checkerror(err)
+
+	// updated the JSON file
+	err = ioutil.WriteFile(filepath, updatedJSONData, 0644)
 }
 
-func appendToJSONFile(filename string) error {
-	var jsondata []Person
+func play() {
+	//	search endpoints
+	searchendpoint := os.Args[1]
+	weight := os.Args[2]
+	unit := os.Args[3]
+	file := os.Args[4]
 
-	file, err := checkForFile(filename)
-	if err != nil {
-		return err
-	}
+	//	rapid api link
+	url := "https://carbonfootprint1.p.rapidapi.com/"
 
-	// Handle empty file
-	if len(file) == 0 {
-		data := []Person{
-			{
-				Fname: "Prasad",
-				Lname: "Junghare",
-				Age:   21,
-			},
-		}
-		databyte, err := json.Marshal(data)
-		if err != nil {
-			return err
-		}
+	//	queryString := "TreeEquivalent" + "?weight=200&unit=kg"
+	queryString := searchendpoint + "?weight=" + weight + "&unit=" + unit
 
-		err = ioutil.WriteFile(filename, databyte, 0644)
-		if err != nil {
-			return err
-		}
+	//	Make a new request
+	req, err := http.NewRequest("GET", url+queryString, nil)
+	checkerror(err)
 
-		return nil
-	}
+	//Adding key
+	req.Header.Add("X-RapidAPI-Key", "4d2c003e3emsh82512a559ce6b89p16ac42jsnc0e7dc1d61ac")
 
-	err = json.Unmarshal(file, &jsondata)
-	if err != nil {
-		return err
-	}
+	// sending the request to receive the respone
+	res, err := http.DefaultClient.Do(req)
+	checkerror(err)
 
-	data := append(jsondata, Person{
-		Fname: "Prasad",
-		Lname: "Junghare",
-		Age:   21,
-	})
+	// closing the repsone body
+	defer res.Body.Close()
 
-	databyte, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
+	appendToJSONFile()
 
-	err = ioutil.WriteFile(filename, databyte, 0644)
-	if err != nil {
-		return err
-	}
+	//Accessing the response body
+	body, err := ioutil.ReadAll(res.Body)
+	checkerror(err)
 
-	return nil
-}
+	//	print the response
+	println(string(body))
 
-func main() {
-	if len(os.Args) < 2 {
-		println("Usage: go run main.go <filename>")
-		os.Exit(1)
-	}
-
-	filename := os.Args[1]
-
-	err := appendToJSONFile(filename)
-	if err != nil {
-		println("Error:", err.Error())
-		os.Exit(1)
-	}
 }
